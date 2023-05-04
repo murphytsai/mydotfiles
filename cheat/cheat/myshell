@@ -1,0 +1,2 @@
+#!/bin/sh
+find . -type f -name "*.md" -o -name "*.rst" -not -name "*template*" | sort -n | xargs grep -i description -A7| sed s'/\.\/cloudsbx-iad1-muc1-//g' | sed s'/\.rst//g' | sed s'/-SOP//g' | sed s'/\.md//g'

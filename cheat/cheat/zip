@@ -1,0 +1,9 @@
+# Create zip file
+zip archive.zip file1 directory/
+
+# To list, test and extract zip archives, see unzip
+cheat unzip
+
+# command added by murphy 
+# dump all file inside zip 
+unzip -l

@@ -1,0 +1,530 @@
+#2017-0424
+knife ssh "name:apt-cs-s-sbworker01" "sudo chef-client -l info -o recipe[usbx_operation::upgrade_and_migrate_win_usbx]" --ssh-user aptadmin -P
+apt-cs-s-sbworker01.iad1 Chef Client finished, 14/14 resources updated in 04 minutes 27 seconds
+
+
+knife ssh "name:apt-cs-s-sbworker02" "sudo chef-client -l info -o recipe[usbx_operation::upgrade_and_migrate_url_usbx]" --ssh-user aptadmin -P
+apt-cs-s-sbworker02.iad1 Chef Client finished, 13/13 resources updated in 06 minutes 09 seconds
+
+
+knife node list
+knife environment list
+knife search node 'chef_environment:iad1-staging AND role:file-sb-win-worker' -i  # 8 nodes
+
+
+$ knife search node 'chef_environment:iad1-url-production'
+Node Name:   apt-cs-cas-url-sbworker02
+Environment: iad1-url-production
+FQDN:        apt-cs-cas-url-sbworker02.iad1
+IP:          10.40.255.120
+Run List:    role[url-sb-worker]
+Roles:
+Recipes:
+Platform:    centos 6.5
+Tags:
+
+$ knife search node 'chef_environment:iad1-file-production'
+Node Name:   apt-cs-sbworker05
+Environment: iad1-file-production
+FQDN:        apt-cs-sbworker05.iad1
+IP:          10.40.255.46
+Run List:    role[file-sb-win-worker]
+Roles:
+Recipes:
+Platform:    centos 6.5
+Tags:
+
+Node Name:   apt-cs-mac-sbworker01
+Environment: iad1-file-production
+FQDN:        apt-cs-mac-sbworker01.iad1
+IP:          10.40.255.113
+Run List:    role[file-sb-mac-worker]
+
+
+#2017-0426
+knife ssh 'chef_environment:muc1-file-production AND role:file-sb-win-worker AND !name:apt-cs-sbworker01' "sudo /bin/hostname" --ssh-user aptadmin -P -C 1
+
+knife ssh 'chef_environment:muc1-file-production AND role:file-sb-win-worker AND !name:apt-cs-sbworker01' "sudo chef-client -o role[file-sb-win-worker],recipe[usbx_operation::upgrade_and_migrate_win_usbx]" --ssh-user aptadmin -P -C 1
+
+
+ knife ssh "name:apt-cs-cas-url-sbworker01" "sudo chef-client -l info -o recipe[usbx_operation::upgrade_and_migrate_url_usbx]" --ssh-user aptadmin -P
+
+ knife ssh 'chef_environment:muc1-url-production AND role:url-sb-worker AND !name:apt-cs-cas-url-sbworker01' "sudo chef-client -o role[url-sb-worker],recipe[usbx_operation::upgrade_and_migrate_url_usbx]" --ssh-user aptadmin -P -C 1
+
+ usbxcli  set-feedbackblacklist --switch ON --sample 1
+
+
+ 10 0 * * 1 (/bin/sh /var/lib/AP/cloudsbx-tools/housekeeping/usbx-schd-purgeresult.sh; /bin/date >> /tmp/op-purgeblacklist.log)
+
+
+knife ssh "name:apt-cs-cas-url-sbworker01" "sudo chef-client -l info -o recipe[usbx_operation::upgrade_and_migrate_url_usbx]" --ssh-user aptadmin -P
+knife ssh 'chef_environment:iad1-url-production AND role:url-sb-worker AND !name:apt-cs-cas-url-sbworker01' "sudo chef-client -o role[url-sb-worker],recipe[usbx_operation::upgrade_and_migrate_url_usbx]" --ssh-user aptadmin -P -C 1
+
+knife search node 'chef_environment:iad1-file-production AND role:file-sb-win-worker AND !name:apt-cs-sbworker01' -i  # 14 nodes
+knife ssh 'chef_environment:iad1-file-production AND role:file-sb-win-worker AND !name:apt-cs-sbworker01' "sudo chef-client -o role[file-sb-win-worker],recipe[usbx_operation::upgrade_and_migrate_win_usbx]" --ssh-user aptadmin -P -C 3
+
+
+
+
+knife ssh 'chef_environment:iad1-file-production AND role:file-sb-win-worker' "sudo python /var/lib/AP/u-sandbox/usandbox/cli/usbxcli.py version" --ssh-user aptadmin -P -C 3
+knife ssh 'chef_environment:iad1-file-production AND role:file-sb-win-worker' "ls /var/lib/AP/cloudsbx_au/cloudsbx_au.py.ori" --ssh-user aptadmin -P -C 3
+
+knife ssh 'chef_environment:iad1-url-production AND role:url-sb-worker' "sudo python /var/lib/AP/u-sandbox/usandbox/cli/usbxcli.py version" --ssh-user aptadmin -P -C 1
+
+
+knife ssh 'chef_environment:iad1-url-production AND role:url-sb-worker' "ls /var/lib/AP/cloudsbx_au/cloudsbx_au.py.ori" --ssh-user aptadmin -P -C 1
+
+
+#2017-0503
+knife ssh 'name:apt-cs-d-oin1' "sudo chef-client -l info -o 'role[file-oin1],recipe[usbx_operation::reimport_sbxgrp_win_usbx_oin1]'" --ssh-user aptadmin -P -G chef-01p -a ipaddress
+
+knife ssh 'name:apt-cs-d-oin1' "sudo chef-client -l info -o 'role[file-oin1],recipe[cloudsbx_deploy::file_deploy_oin1]'" --ssh-user aptadmin -P -G chef-01p -a ipaddress
+
+#2017-0504
+# deploy code to support old and new ova.
+knife ssh 'name:apt-cs-s-sbworker01' "sudo chef-client -o role[file-sb-win-worker],recipe[cloudsbx_deploy::file_deploy]" --ssh-user aptadmin -P
+
+# re-import new ova sandbox profile.
+knife ssh 'name:apt-cs-s-sbworker01' "sudo chef-client -l info -o recipe[usbx_operation::reimport_sbxgrp_win_usbx]" --ssh-user aptadmin -P
+
+[root@apt-cs-s-sbworker01 aptadmin]# usbxcli sbxgrp-list
+{
+    "SandboxGroup": [
+        {
+            "Applications": [
+                "Office 2003_2007",
+                "Adobe Reader 8_9_11",
+                "Adobe Flash Player Active X 9.0",
+                "Internet Explorer 8.0.6001.18702",
+                ".Net Framework 4",
+                "Java Runtime Environment 1.7"
+            ],
+            "Cleaned": false,
+            "ClonedType": "link",
+            "CostTime": 987,
+            "ExtendedDeviceID": 1,
+            "FailedReason": "",
+            "ID": "CB0C8C237B50ADA3",
+            "ImportTime": "1456380306",
+            "Name": "xpsp3en_office2k7",
+            "Platform": "Microsoft Windows XP Professional SP3 Build 2600 32bit",
+            "SandboxType": "local",
+            "Sandboxes": [
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.41",
+                    "IP": "1.1.2.41",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.40",
+                    "IP": "1.1.2.40",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.43",
+                    "IP": "1.1.2.43",
+                    "Status": "OFFLINE"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.42",
+                    "IP": "1.1.2.42",
+                    "Status": "OFFLINE"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.45",
+                    "IP": "1.1.2.45",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.44",
+                    "IP": "1.1.2.44",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.34",
+                    "IP": "1.1.2.34",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.35",
+                    "IP": "1.1.2.35",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.36",
+                    "IP": "1.1.2.36",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.37",
+                    "IP": "1.1.2.37",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.30",
+                    "IP": "1.1.2.30",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.31",
+                    "IP": "1.1.2.31",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.32",
+                    "IP": "1.1.2.32",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.33",
+                    "IP": "1.1.2.33",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.38",
+                    "IP": "1.1.2.38",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.39",
+                    "IP": "1.1.2.39",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.27",
+                    "IP": "1.1.2.27",
+                    "Status": "OFFLINE"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.26",
+                    "IP": "1.1.2.26",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.25",
+                    "IP": "1.1.2.25",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.29",
+                    "IP": "1.1.2.29",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "CB0C8C237B50ADA3_1.1.2.28",
+                    "IP": "1.1.2.28",
+                    "Status": "READY"
+                }
+            ],
+            "SharedSnapshot": true,
+            "Status": "running",
+            "Type": "win",
+            "UpdateTime": "1492758121"
+        },
+        {
+            "Applications": [
+                "Office 2003_2007",
+                "Adobe Reader 8_9_11",
+                "Adobe Flash Player Active X 9.0",
+                "Internet Explorer 9.0.8112.16421",
+                ".Net Framework 4",
+                "Java Runtime Environment 1.7"
+            ],
+            "Cleaned": false,
+            "ClonedType": "link",
+            "CostTime": 739,
+            "ExtendedDeviceID": 1,
+            "FailedReason": "",
+            "ID": "AA7FC15FC9B16A2F",
+            "ImportTime": "1456379528",
+            "Name": "win7sp1en_office2k7_64bit",
+            "Platform": "Microsoft Windows 7 Professional SP1 Build 7601 64bit",
+            "SandboxType": "local",
+            "Sandboxes": [
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.20",
+                    "IP": "1.1.2.20",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.21",
+                    "IP": "1.1.2.21",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.22",
+                    "IP": "1.1.2.22",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.23",
+                    "IP": "1.1.2.23",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.19",
+                    "IP": "1.1.2.19",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.18",
+                    "IP": "1.1.2.18",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.15",
+                    "IP": "1.1.2.15",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.14",
+                    "IP": "1.1.2.14",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.17",
+                    "IP": "1.1.2.17",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.16",
+                    "IP": "1.1.2.16",
+                    "Status": "OFFLINE"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.11",
+                    "IP": "1.1.2.11",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.10",
+                    "IP": "1.1.2.10",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.13",
+                    "IP": "1.1.2.13",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.12",
+                    "IP": "1.1.2.12",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.5",
+                    "IP": "1.1.2.5",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.4",
+                    "IP": "1.1.2.4",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.7",
+                    "IP": "1.1.2.7",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.6",
+                    "IP": "1.1.2.6",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.3",
+                    "IP": "1.1.2.3",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.9",
+                    "IP": "1.1.2.9",
+                    "Status": "READY"
+                },
+                {
+                    "ID": "AA7FC15FC9B16A2F_1.1.2.8",
+                    "IP": "1.1.2.8",
+                    "Status": "READY"
+                }
+            ],
+            "SharedSnapshot": true,
+            "Status": "running",
+            "Type": "win64",
+            "UpdateTime": "1492758121"
+        }
+    ]
+}
+
+#2017-0508
+
+# WinFile
+# deploy code to support old and new ova.
+knife ssh 'name:apt-cs-s-sbworker01' "sudo chef-client -o role[file-sb-win-worker],recipe[cloudsbx_deploy::file_deploy]" --ssh-user aptadmin -P
+
+# re-import new ova sandbox profile.
+knife ssh 'name:apt-cs-s-sbworker01' "sudo chef-client -l info -o recipe[usbx_operation::reimport_sbxgrp_win_usbx]" --ssh-user aptadmin -P
+
+
+# URLFile
+# deploy code to support old and new ova.
+knife ssh 'name:apt-cs-s-sbworker02' "sudo chef-client -o role[url-sb-worker],recipe[cloudsbx_deploy::url_deploy]" --ssh-user aptadmin -P
+
+# re-import new ova sandbox profile.
+knife ssh 'name:apt-cs-s-sbworker02' "sudo chef-client -l info -o recipe[usbx_operation::reimport_sbxgrp_url_usbx]" --ssh-user aptadmin -P
+
+
+
+knife ssh "name:apt-cs-cas-url-sbworker01" "sudo chef-client -l info -o recipe[usbx_operation::fetch_required]" --ssh-user aptadmin -P
+
+
+knife ssh "name:apt-cs-cas-url-sbworker01" "sudo chef-client -l info -o recipe[usbx_operation::fetch_vms]" --ssh-user aptadmin -P
+
+
+knife ssh 'chef_environment:iad1-file-production AND role:file-sb-win-worker AND "cat /var/lib/APF/matrix/VERSION" --ssh-user aptadmin -P -C 3
+
+
+
+# 20170518
+# target node :
+# on node
+# downalod rpm for chef client v12.5
+wget -c --no-check-certificate https://opscode-omnibus-packages.s3.amazonaws.com/el/6/x86_64/chef-12.5.1-1.el6.x86_64.rpm
+# install it on worker
+sudo rpm -ivh chef-12.5.1-1.el6.x86_64.rpm
+# add ruby reference path for chef into bash_profile
+echo 'export PATH="/opt/chef/embedded/bin:$PATH"' >> ~/.bash_profile && source ~/.bash_profile
+
+# deploy-server
+knife bootstrap apt-cs-s-url-sbworker01.muc1 -x aptadmin -P 'Tr3ndM!cr0' -N apt-cs-s-url-sbworker01 --sudo --use-sudo-password --environment muc1-staging
+sudo scp ~/cloudsbx-chef-repo/.chef/encrypted_data_bag_secret aptadmin@apt-cs-s-url-sbworker01:/home/aptadmin/
+# node
+# on node
+sudo mv /home/aptadmin/encrypted_data_bag_secret /etc/chef/
+knife node run_list set apt-cs-s-url-sbworker01 'role[url-sb-worker]'
+
+# check if new node configed correctly.
+knife node show apt-cs-s-url-sbworker01
+
+# start to install application code to new node
+knife ssh "name:apt-cs-s-url-sbworker01" "sudo chef-client -l info -o recipe[usbx_operation::prep_win_usbx]" --ssh-user aptadmin -P
+knife ssh "name:apt-cs-s-url-sbworker01" "sudo chef-client -l info -o recipe[cloudsbx_install::install_sbworker]" --ssh-user aptadmin -P
+knife ssh "name:apt-cs-s-url-sbworker01" "sudo chef-client -l info -o role[url-sb-worker],recipe[cloudsbx_deploy::url_deploy]" --ssh-user aptadmin -P
+
+
+#20170523
+knife ssh "name:apt-cs-d-sbworker01" "sudo chef-client -l info -o recipe[usbx_operation::upgrade_and_migrate_win_usbx]" --ssh-user aptadmin -P
+
+knife ssh "name:apt-cs-d-sbworker01" "sudo /sbin/ifconfig" --ssh-user aptadmin -P
+
+
+
+
+#20170525
+[2017-05-24 12:36:49,089: INFO/Worker-1] /var/lib/AP/u-sandbox/usandbox/cli/usbxcli.py op-getstatus --idlist /var/lib/AP/working/URL/idlist
+[2017-05-24 12:39:54,127: INFO/Worker-1] wait for task completion , sleep 3 secs ...
+
+514046
+
+
+#20170601
+knife ssh "chef_environment:muc1-staging" "cat /etc/sysconfig/network" --ssh-user aptadmin -P -C 1
+
+1.deploy by tmpwatch recipe to websrv
+2.deploy new websrv (file / url) to connect to production environment and test again
+# iad1 url websrv (use cloudsbx_src master branch)
+# muc1 url websrv (use cloudsbx_src master branch)
+# muc1 file websrv (use cloudsbx_src master branch)
+
+3.notify DCS to update web VIP group member.
+4.RFC SOP and review
+
+
+#20170613
+    'server': ('sjc1-rly.sdi.trendmicro.com', 25),
+
+
+knife ssh 'chef_environment:muc1-url-production AND role:url-db-worker'  "ps aux | grep agent_smith" --ssh-user aptadmin -P
+
+knife ssh 'chef_environment:muc1-url-production AND role:url-db-worker'  "pkill -f agent_smith.py" --ssh-user aptadmin -P
+
+knife ssh 'chef_environment:muc1-url-production AND role:url-db-worker'  "cat /var/lib/APF_URL/matrix/agent_smith_config.py | grep server" --ssh-user aptadmin -P
+
+knife ssh 'chef_environment:muc1-url-production AND role:url-db-worker'  "sed -i 's/SJDCMailRelay/sjc1-rly/g' /var/lib/APF_URL/matrix/agent_smith_config.py" --ssh-user aptadmin -P
+
+
+knife ssh 'chef_environment:iad1-file-production AND role:file-db-worker'  "ps aux | grep agent_smith" --ssh-user aptadmin -P
+
+knife ssh 'chef_environment:iad1-file-production AND role:file-db-worker'  "pkill -f agent_smith.py" --ssh-user aptadmin -P
+
+knife ssh 'chef_environment:iad1-file-production AND role:file-db-worker'  "cat /var/lib/APF/matrix/agent_smith_config.py | grep server" --ssh-user aptadmin -P
+
+knife ssh 'chef_environment:iad1-file-production AND role:file-db-worker'  "sed -i 's/SJDCMailRelay/sjc1-rly/g' /var/lib/APF/matrix/agent_smith_config.py" --ssh-user aptadmin -P
+
+
+knife ssh 'chef_environment:iad1-url-production AND role:url-db-worker'  "ps aux | grep agent_smith" --ssh-user aptadmin -P
+
+knife ssh 'chef_environment:iad1-url-production AND role:url-db-worker'  "pkill -f agent_smith.py" --ssh-user aptadmin -P
+CMakeLists.txt
+knife ssh 'chef_environment:iad1-url-production AND role:url-db-worker'  "cat /var/lib/APF_URL/matrix/agent_smith_config.py | grep server" --ssh-user aptadmin -P
+
+knife ssh 'chef_environment:iad1-url-production AND role:url-db-worker'  "sed -i 's/SJDCMailRelay/sjc1-rly/g' /var/lib/APF_URL/matrix/agent_smith_config.py" --ssh-user aptadmin -P
+
+
+#20170621
+knife ssh 'chef_environment:muc1-url-production AND role:url-sb-worker' 'sudo ls /var/log/sssd/ ' --ssh-user aptadmin -P -C 1
+
+#20170622
+cd translatePDF
+
+# prepare libopencc.so
+git clone git://github.com/BYVoid/OpenCC.git
+cd OpenCC
+cmake -f CMakeLists.txt
+make prefix=/usr/local
+sudo make prefix=/usr/local install
+
+# prepare env
+source ~/.venv27/bin/activate
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/lib64
+
+#20170630
+[root@apt-cs-s-sbworker02 aptadmin]# echo wrs 'http://click.e.log34.org/?aglGekkVDoglqlDugeGq_teDHg&amp;ZG1wDdp/B013ID263S/ref=strm_eo_80_nad_20_3.aspx' | usbxcli test-extservices
+(Cmd) Connect to WRS/Census by proxy: 1, type(http), host(prxy.local), port(8080), user()
+{'wrsscore': 71, 'error_code': 1, 'categories': [90]}
+
+
+#20170705
+
+knife ssh "name:apt-cs-s-url-sbworker01" "sudo chef-client -o role[url-sb-worker],recipe[usbx_operation::upgrade_and_migrate_url_usbx]" --ssh-user aptadmin -P -C 1
+
+knife ssh "name:apt-cs-s-url-sbworker01" "/sbin/ifconfig" --ssh-user aptadmin -P -C 1
+
+#20170712
+sed -i 's/chunhao_kao/pin_lin/g' /var/lib/APF/matrix/agent_smith_config.py
+
+
+http://tr.anpdm.com/track?t=c&mid=19234041&uid=1011833848&&&http%3A%2F%2Fcoeliam.com%2FPortals%2F0%2FProduktblad%2520%26%2520F%25C3%25B6rvaltarkommentar%2FProduktbald%2520EN%2FNorrsken_1510.pdf%3Fver%3D2016-01-14-110659-530%26timestamp%3D1453905884661
+http://tr.anpdm.com/track?t=c&mid=19246047&uid=1000521004&&&http%3A%2F%2Fcoeliam.com%2FPortals%2F0%2FProduktblad%20&%20Förvaltarkommentar/Förrvaltarkommentar%20SV/Coeli_Global_Selektiv_Lux_Forvaltarkommentar.pdf?ver=2016-11-08-091010-617
+
+
+
+http://tr.anpdm.com/track?t=c&mid=19247197&uid=1000521936&&&http%3A%2F%2Fcoeliam.com%2FPortals%2F0%2FProduktblad%20&%20Förvaltarkommentar/Förrvaltarkommentar%20SV/Coeli_Sverige_Lux_Forvaltarkommentar.pdf?ver=2015-08-11-093012-060
+
+
+http://tr.anpdm.com/track?t=c&mid=19247805&uid=1000521004&&&http%3A%2F%2Fcoeliam.com%2FPortals%2F0%2FProduktblad%20&%20Förvaltarkommentar/Förrvaltarkommentar%20SV/Globala%20möjligheter%20kommentar.pdf?ver=2017-04-19-120115-183&timestamp=1492596082979
+
+
+
+http://coeliam.com/Portals/0/Produktblad & Förvaltarkommentar/Förrvaltarkommentar SV/Globala möjligheter kommentar.pdf?ver=2017-04-19-120115-183&timestamp=1492596082979
+
+http://tr.anpdm.com/track?t=c&mid=19247197&uid=1000521936&&&http%3A%2F%2Fcoeliam.com%2FPortals%2F0%2FProduktblad%20%26%20F%C3%B6rvaltarkommentar%2FF%C3%B6rrvaltarkommentar%20SV%2FCoeli_Sverige_Lux_Forvaltarkommentar.pdf%3Fver%3D2015-08-11-093012-060
+
+
+#20170713
+ cd /var/lib/AP/required/housekeeping/ ; bash /var/lib/AP/required/housekeeping/usbx-schd-purgeresult.sh
+
+ cd /var/lib/APF/matrix/; pkill -f "python agent_smith.py"; sleep 5; /usr/bin/python agent_smith.py &
+
+
+ps aux | grep python
+ cd /var/lib/APF_URL/matrix/; pkill -f "python agent_smith.py"; sleep 5; /usr/bin/python agent_smith.py &

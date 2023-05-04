@@ -1,0 +1,5 @@
+# execution command filterred by percol 
+history | cut -c 8- | percol
+
+# execution command filterred by percol 
+$(cheat git | percol)

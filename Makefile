@@ -1,26 +1,15 @@
-.PHONY: install karabiner phoenix macos brew brew-restore phoenix-dev
+.PHONY: install karabiner macos brew brew-restore
 
 # Run dotbot install script
 install:
 	./install
 
-link:
-	./install --only link
-
-# Build and output karabiner.json
+# Generate karabiner.json and bounce karabiner
 karabiner:
-	deno run --allow-env --allow-read --allow-write karabiner/karabiner.ts
-
-karabiner-dev:
-	deno run --watch --allow-env --allow-read --allow-write karabiner/karabiner.ts
-
-# Build and output phoenix config
-phoenix:
-	yarn --cwd phoenix run build
-
-# Watch and build phoenix config
-phoenix-dev:
-	yarn --cwd phoenix run dev
+	jsonnet karabiner/karabiner.jsonnet -o karabiner/karabiner.json
+	launchctl stop org.pqrs.karabiner.karabiner_console_user_server
+	sleep 0.2
+	launchctl start org.pqrs.karabiner.karabiner_console_user_server
 
 # Install extensions from vscode/extensions.txt
 vscode-install:
@@ -37,7 +26,7 @@ brew:
 
 # Restore Homebrew packages
 brew-restore:
-	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+	curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install | ruby
 	brew update
 	brew upgrade
 	brew install mas

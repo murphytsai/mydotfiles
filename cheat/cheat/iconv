@@ -1,0 +1,2 @@
+# BIG5 To UTF-8
+iconv -f big5 -t utf-8 big5.txt -o utf8.txt

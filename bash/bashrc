@@ -204,3 +204,9 @@ GREEN="\[\033[33m\]"
 BLUE="\[\033[36m\]"
 WHITE="\[\033[0m\]"
 export PS1="${ORANGE}\u ${GREEN}\w${BLUE}\n$ "
+
+
+export PATH="/Applications/Fortify/Fortify_SCA_and_Apps_21.1.2/bin:$PATH"
+. "$HOME/.cargo/env"
+
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
